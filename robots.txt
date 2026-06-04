@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nickchen568.github.io/raise-website/sitemap.xml
