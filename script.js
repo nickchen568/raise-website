@@ -7,7 +7,9 @@
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
-    emailjs.init("Kj0mVuPoRV2eojDGI");
+    if (typeof emailjs !== 'undefined') {
+      emailjs.init("Kj0mVuPoRV2eojDGI");
+    }
     initHeroSlider();
     initHeaderScroll();
     initMobileMenu();
