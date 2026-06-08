@@ -191,15 +191,43 @@
     const zoom = document.getElementById('lbZoom');
     const zoomImg = document.getElementById('lbZoomImg');
     const zoomClose = document.getElementById('lbZoomClose');
+    const zoomPrev = document.getElementById('lbZoomPrev');
+    const zoomNext = document.getElementById('lbZoomNext');
+    const zoomCounter = document.getElementById('lbZoomCounter');
 
     if (!lb || !gridEl || !wrap) return;
 
-    const openZoom = (src, alt) => {
+    let zoomImages = [];
+    let zoomIdx = 0;
+    let zoomTotal = 0;
+
+    const updateCounter = () => {
+      if (zoomCounter) zoomCounter.textContent = `${zoomIdx + 1} / ${zoomTotal}`;
+    };
+
+    const openZoom = (src, alt, idx, imgs) => {
+      zoomImages = imgs;
+      zoomTotal = imgs.length;
+      zoomIdx = idx;
       zoomImg.src = src;
       zoomImg.alt = alt || '';
+      updateCounter();
       zoom.classList.add('is-open');
       zoom.setAttribute('aria-hidden', 'false');
     };
+
+    const prevImg = () => {
+      zoomIdx = (zoomIdx - 1 + zoomTotal) % zoomTotal;
+      zoomImg.src = zoomImages[zoomIdx];
+      updateCounter();
+    };
+
+    const nextImg = () => {
+      zoomIdx = (zoomIdx + 1) % zoomTotal;
+      zoomImg.src = zoomImages[zoomIdx];
+      updateCounter();
+    };
+
     const closeZoom = () => {
       zoom.classList.remove('is-open');
       zoom.setAttribute('aria-hidden', 'true');
@@ -213,13 +241,16 @@
 
       titleEl.textContent = folder;
       gridEl.innerHTML = '';
-      files.forEach((f, i) => {
+
+      const imgs = files.map((f, i) => {
         const img = document.createElement('img');
         img.src = `客戶案例/${folder}/${f}`;
         img.alt = `${folder} - ${i + 1}`;
         img.loading = 'lazy';
-        img.addEventListener('click', () => openZoom(img.src, img.alt));
+        img.style.cursor = 'zoom-in';
+        img.addEventListener('click', () => openZoom(img.src, img.alt, i, imgs));
         gridEl.appendChild(img);
+        return img.src;
       });
 
       lb.classList.add('is-open');
@@ -233,6 +264,7 @@
       lb.setAttribute('aria-hidden', 'true');
       gridEl.innerHTML = '';
       document.body.style.overflow = '';
+      closeZoom();
     };
 
     wrap.addEventListener('click', (e) => {
@@ -246,12 +278,15 @@
     lb.addEventListener('click', (e) => { if (e.target === lb) close(); });
 
     zoomClose.addEventListener('click', closeZoom);
+    zoomPrev.addEventListener('click', prevImg);
+    zoomNext.addEventListener('click', nextImg);
     zoom.addEventListener('click', (e) => { if (e.target === zoom) closeZoom(); });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape') return;
-      if (zoom.classList.contains('is-open')) closeZoom();
-      else if (lb.classList.contains('is-open')) close();
+      if (!zoom.classList.contains('is-open')) return;
+      if (e.key === 'Escape') closeZoom();
+      else if (e.key === 'ArrowLeft') prevImg();
+      else if (e.key === 'ArrowRight') nextImg();
     });
   }
 
