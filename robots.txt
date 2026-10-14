@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://nickchen568.github.io/raise-website/sitemap.xml
+Sitemap: https://raiseimage.com.tw/sitemap.xml
