@@ -4,6 +4,8 @@
 (function () {
   'use strict';
 
+  let captchaApi = null; // 文字驗證（Captcha）實例，供聯絡表單共用
+
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
@@ -17,6 +19,7 @@
     initReveal();
     initCounters();
     initLightbox();
+    initCaptcha();
     initContactForm();
     initToTop();
     initActiveSection();
@@ -290,11 +293,117 @@
     });
   }
 
+  /* ---------- 7. 文字驗證（Captcha） ---------- */
+  function initCaptcha() {
+    const canvas = document.getElementById('captchaCanvas');
+    const input = document.getElementById('captchaInput');
+    const refreshBtn = document.getElementById('captchaRefresh');
+    const hint = document.getElementById('captchaHint');
+    const submitBtn = document.getElementById('submitBtn');
+    if (!canvas || !input || !submitBtn) return null;
+
+    // 排除容易看錯的字元（I O 0 1 S Z）
+    const CHARS = 'ABCDEFGHJKLMNPQRTUVWXY23456789';
+    let code = '';
+
+    const rand = (min, max) => Math.random() * (max - min) + min;
+
+    function draw() {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      code = '';
+      for (let i = 0; i < 4; i++) {
+        code += CHARS.charAt(Math.floor(Math.random() * CHARS.length));
+      }
+
+      // 背景
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#f3f4f6';
+      ctx.fillRect(0, 0, w, h);
+
+      // 干擾線
+      for (let i = 0; i < 5; i++) {
+        ctx.strokeStyle = `rgba(${Math.floor(rand(120, 200))},${Math.floor(rand(120, 200))},${Math.floor(rand(120, 200))},0.45)`;
+        ctx.lineWidth = rand(0.8, 1.8);
+        ctx.beginPath();
+        ctx.moveTo(rand(0, w), rand(0, h));
+        ctx.lineTo(rand(0, w), rand(0, h));
+        ctx.stroke();
+      }
+
+      // 干擾點
+      for (let i = 0; i < 40; i++) {
+        ctx.fillStyle = `rgba(${Math.floor(rand(100, 190))},${Math.floor(rand(100, 190))},${Math.floor(rand(100, 190))},0.4)`;
+        ctx.beginPath();
+        ctx.arc(rand(0, w), rand(0, h), rand(0.6, 1.4), 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 文字
+      const step = w / (code.length + 1);
+      for (let i = 0; i < code.length; i++) {
+        ctx.save();
+        ctx.translate(step * (i + 0.5) + rand(-3, 3), h / 2 + rand(-4, 4));
+        ctx.rotate(rand(-0.28, 0.28));
+        ctx.font = 'bold 30px "Segoe UI", Arial, "Microsoft JhengHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = `rgb(${Math.floor(rand(20, 90))},${Math.floor(rand(20, 90))},${Math.floor(rand(60, 140))})`;
+        ctx.fillText(code.charAt(i), 0, 0);
+        ctx.restore();
+      }
+    }
+
+    function setHint(text, kind) {
+      if (!hint) return;
+      hint.textContent = text;
+      hint.classList.remove('is-ok', 'is-err');
+      if (kind) hint.classList.add(kind);
+    }
+
+    // 檢查輸入是否正確
+    function check(showHint) {
+      const val = input.value.trim().toUpperCase();
+      const ok = !!val && val === code;
+      input.classList.toggle('is-ok', ok);
+      input.classList.toggle('is-err', !ok && val.length > 0);
+      submitBtn.disabled = !ok;
+      if (showHint) {
+        if (ok) setHint('✓ 驗證碼正確，可以送出表單。', 'is-ok');
+        else if (val.length > 0) setHint('✗ 驗證碼不正確，請重新輸入。', 'is-err');
+      }
+      return ok;
+    }
+
+    function refresh() {
+      draw();
+      input.value = '';
+      input.classList.remove('is-ok', 'is-err');
+      submitBtn.disabled = true;
+      setHint('請輸入圖片中的 4 碼文字（不分大小寫），輸入正確才能送出表單。');
+    }
+
+    input.addEventListener('input', () => check(true));
+    if (refreshBtn) refreshBtn.addEventListener('click', refresh);
+    canvas.addEventListener('click', refresh);
+
+    refresh();
+
+    captchaApi = {
+      isValid: () => check(false),
+      reset: refresh
+    };
+    return captchaApi;
+  }
+
   /* ---------- 8. 聯絡表單（EmailJS 發送） ---------- */
   function initContactForm() {
     const form = document.getElementById('contactForm');
     const status = document.getElementById('formStatus');
     const btn = document.getElementById('submitBtn');
+    const captcha = captchaApi;
     if (!form) return;
 
     form.addEventListener('submit', async (e) => {
@@ -318,6 +427,13 @@
         return;
       }
 
+      // 文字驗證
+      if (captcha && !captcha.isValid()) {
+        status.classList.add('is-err');
+        status.textContent = '請輸入正確的驗證碼';
+        return;
+      }
+
       btn.classList.add('is-loading');
       btn.disabled = true;
 
@@ -336,13 +452,14 @@
         status.classList.add('is-ok');
         status.textContent = '✓ 訊息已送出，我們將儘快與您聯繫！';
         form.reset();
+        if (captcha) captcha.reset();
       } catch (err) {
         console.error('EmailJS error:', err);
         status.classList.add('is-err');
         status.textContent = '✗ 傳送失敗，請直接來電 (02) 2656-2287 或 email: raise.image@msa.hinet.net';
       } finally {
         btn.classList.remove('is-loading');
-        btn.disabled = false;
+        btn.disabled = captcha ? !captcha.isValid() : false;
       }
     });
   }

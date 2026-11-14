@@ -375,7 +375,20 @@
             <textarea name="message" rows="5" required placeholder="請簡述您的需求內容…"></textarea>
           </label>
 
-          <button type="submit" class="btn btn-primary btn-block" id="submitBtn">送出表單</button>
+          <!-- 文字驗證（Captcha） -->
+          <div class="captcha">
+            <span class="captcha-label">輸入文字驗證 <i>*</i></span>
+            <div class="captcha-row">
+              <canvas id="captchaCanvas" width="160" height="48" role="img" aria-label="文字驗證碼圖片"></canvas>
+              <button type="button" class="captcha-refresh" id="captchaRefresh" title="看不清？換一組驗證碼" aria-label="換一組驗證碼">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+              </button>
+              <input type="text" id="captchaInput" name="captcha" placeholder="請輸入圖片中的文字" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="4" />
+            </div>
+            <p class="captcha-hint" id="captchaHint">請輸入圖片中的 4 碼文字（不分大小寫），輸入正確才能送出表單。</p>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="submitBtn" disabled>送出表單</button>
           <p class="form-status" id="formStatus" aria-live="polite"></p>
         </form>
       </div>
